@@ -45,7 +45,6 @@ class Publication(Base):
     id_vk: Mapped[int] = mapped_column(BigInteger, nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
     type: Mapped[PublTypeEnum] = mapped_column(Enum(PublTypeEnum), nullable=False)
-    views: Mapped[int] = mapped_column(Integer, nullable=False)
 
     user = relationship('User', back_populates='publications')
 
@@ -58,7 +57,7 @@ class Publication(Base):
     snapshots = relationship('Publication', back_populates='publication')
 
     def __repr__(self):
-        return f'Publication {self.type}{self.user.id_vk}_{self.id_vk}'
+        return f'https://vk.com/{self.type}{self.user.id_vk}_{self.id_vk}'
 
 
 class Hashtag(Base):
