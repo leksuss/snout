@@ -42,8 +42,9 @@ class Publication(Base):
     __tablename__ = 'publications'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, index=True)
-    id_vk: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
+    date_published: Mapped[Date] = mapped_column(Date, nullable=False)
     type: Mapped[PublTypeEnum] = mapped_column(Enum(PublTypeEnum), nullable=False)
 
     user = relationship('User', back_populates='publications')
@@ -111,7 +112,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, index=True)
-    id_vk: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     first_name: Mapped[str] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str] = mapped_column(String(255), nullable=True)
     nickname: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -119,13 +120,18 @@ class User(Base):
     birthday: Mapped[Date] = mapped_column(Date, nullable=True)
     country_id: Mapped[int] = mapped_column(Integer, ForeignKey('countries.id'), nullable=True)
     city_id: Mapped[int] = mapped_column(Integer, ForeignKey('cities.id'), nullable=True)
-    is_closed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_closed: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    checked_at: Mapped[Date] = mapped_column(DateTime(timezone=True), nullable=False, default=func.now())
 
     publications = relationship('Publication', back_populates='user')
     activities = relationship('Activity', back_populates='user')
 
     country = relationship('Country', back_populates='users')
     city = relationship('City', back_populates='users')
+
+    @property
+    def is_community(self):
+        return self.id_vk < 0
 
     def __repr__(self):
         return f'User ID {self.id_vk}'
@@ -135,7 +141,7 @@ class Country(Base):
     __tablename__ = 'countries'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, index=True)
-    id_vk: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     users = relationship('User', back_populates='country')
@@ -149,7 +155,7 @@ class City(Base):
     __tablename__ = 'cities'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, index=True)
-    id_vk: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     country_id: Mapped[int] = mapped_column(Integer, ForeignKey('countries.id'))
 
