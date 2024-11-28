@@ -9,25 +9,26 @@ from src.db_conn import Base
 
 
 class SexEnum(enum.Enum):
-    MALE = 'male'
-    FEMALE = 'female'
+    MALE = ' MALE'
+    FEMALE = 'FEMALE'
 
 
 class PublTypeEnum(enum.Enum):
-    CLIP = 'clip'
-    VIDEO = 'video'
+    CLIP = 'CLIP'
+    VIDEO = 'VIDEO'
+    WALL = 'WALL'
 
 
 class ActivityTypeEnum(enum.Enum):
-    LIKE = 'like'
-    COMMENT = 'comment'
+    LIKE = 'LIKE'
+    COMMENT = 'COMMENT'
 
 
 class SnapshotStatusEnum(enum.Enum):
-    SUCCESS = 'success'
-    NOT_FOUND = 'not_found'
-    HIDDEN = 'hidden'
-    ERROR = 'error'
+    SUCCESS = 'SUCCESS'
+    NOT_FOUND = 'NOT_FOUND'
+    ACCESS_DENIED = 'ACCESS_DENIED'
+    ERROR = 'ERROR'
 
 
 publication_hashtag = Table(
@@ -55,10 +56,10 @@ class Publication(Base):
         back_populates='publications'
     )
     activities = relationship('Activity', back_populates='publication')
-    snapshots = relationship('Publication', back_populates='publication')
+    snapshots = relationship('PublicationSnapshot', back_populates='publication')
 
     def __repr__(self):
-        return f'https://vk.com/{self.type}{self.user.id_vk}_{self.id_vk}'
+        return f'https://vk.com/{self.type.value.lower()}{self.user.id_vk}_{self.id_vk}'
 
 
 class Hashtag(Base):
@@ -99,9 +100,9 @@ class PublicationSnapshot(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, nullable=False, autoincrement=True, index=True)
     publication_id: Mapped[int] = mapped_column(Integer, ForeignKey('publications.id'), nullable=False)
-    views: Mapped[int] = mapped_column(Integer, nullable=False)
-    likes: Mapped[int] = mapped_column(Integer, nullable=False)
-    comments: Mapped[int] = mapped_column(Integer, nullable=False)
+    views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    likes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    comments: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     checked_at: Mapped[Date] = mapped_column(DateTime(timezone=True), nullable=False, default=func.now())
     status: Mapped[SnapshotStatusEnum] = mapped_column(Enum(SnapshotStatusEnum), nullable=False, index=True)
 
