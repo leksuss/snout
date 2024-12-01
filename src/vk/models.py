@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Integer, String, BigInteger, ForeignKey, Enum, Boolean, Table, Column, DateTime, func
+from sqlalchemy import Integer, String, BigInteger, ForeignKey, Enum, Boolean, Table, Column, DateTime, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Date
 from typing import List
@@ -44,7 +44,7 @@ class Publication(Base):
     __tablename__ = 'publications'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, index=True)
-    id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    id_vk: Mapped[int] = mapped_column(BigInteger, nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
     date_published: Mapped[Date] = mapped_column(Date, nullable=False)
     type: Mapped[PublTypeEnum] = mapped_column(Enum(PublTypeEnum), nullable=False)
@@ -58,6 +58,10 @@ class Publication(Base):
     )
     activities = relationship('Activity', back_populates='publication')
     snapshots = relationship('PublicationSnapshot', back_populates='publication')
+
+    __table_args__ = (
+        UniqueConstraint('id_vk', 'user_id', name='unique_publ'),
+    )
 
     def __repr__(self):
         return f'https://vk.com/{self.type.value.lower()}{self.user.id_vk}_{self.id_vk}'

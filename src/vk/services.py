@@ -45,7 +45,8 @@ def get_entities(entity_class: Type, conditions: list | None = None) -> tuple[An
 
 def add_publication(publication: dict) -> int:
     conditions = [
-        Publication.id_vk == publication['id_vk']
+        Publication.id_vk == publication['id_vk'],
+        Publication.user_id == publication['user_id']
     ]
     return add_or_get_entity_id(Publication, publication, conditions)
 
@@ -68,7 +69,7 @@ def add_publication_snapshot(snapshot: dict) -> int:
     conditions = [
         PublicationSnapshot.publication_id == snapshot['publication_id'],
         PublicationSnapshot.status == snapshot['status'],
-        # PublicationSnapshot.checked_at >= one_hour_ago,
+        PublicationSnapshot.checked_at >= one_hour_ago,
     ]
     return add_or_get_entity_id(PublicationSnapshot, snapshot, conditions)
 
@@ -84,7 +85,10 @@ def add_city(city: dict) -> int:
     ]
     return add_or_get_entity_id(City, city, conditions)
 
-def get_hashtags(conditions: list | None = None) -> tuple[Hashtag, ...]:
+def get_hashtags(ids: list | None = None) -> tuple[Hashtag, ...]:
+    conditions = [
+        Hashtag.id.in_(ids)
+    ]
     return get_entities(Hashtag, conditions)
 
 def get_publications(conditions: list | None = None) -> tuple[Publication, ...]:
