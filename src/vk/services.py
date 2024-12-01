@@ -1,18 +1,28 @@
 from datetime import datetime, timedelta
 from typing import Type, Any
-
+from pydantic import BaseModel
 from sqlalchemy import select, and_, not_, exists, update
 from sqlalchemy.orm import joinedload, aliased
 
-
 from src.logger import get_logger
 from src.db_conn import session as db
-from src.vk.models import Publication, User, Activity, PublicationSnapshot, Hashtag, ActivityTypeEnum, SnapshotStatusEnum
+from src.vk.models import (
+    City,
+    Publication,
+    User,
+    Activity,
+    PublicationSnapshot,
+    Hashtag,
+    ActivityTypeEnum,
+    SnapshotStatusEnum,
+)
+from src.vk.schemas import UserSchema
+
 
 logger = get_logger(__name__)
 
 
-def add_or_get_entity_id(entity_class: Type, entity: dict[str, Any], conditions: list) -> (int, bool):
+def add_or_get_entity_id(entity_class: Type, entity: dict, conditions: list) -> (int, bool):
     query = select(entity_class).where(and_(*conditions))
     existing_entity = db.execute(query).scalars().first()
 
@@ -26,11 +36,12 @@ def add_or_get_entity_id(entity_class: Type, entity: dict[str, Any], conditions:
     return new_entity.id, True
 
 
-def get_entities(entity_class: Type, ids: list[int] = None) -> list:
+def get_entities(entity_class: Type, conditions: list | None = None) -> tuple[Any, ...]:
     query = select(entity_class)
-    if ids:
-        query = query.where(entity_class.id.in_(ids))
+    if conditions:
+        query = query.where(and_(*conditions))
     return db.execute(query).scalars().all()
+
 
 def add_publication(publication: dict) -> int:
     conditions = [
@@ -67,11 +78,29 @@ def add_hashtag(hashtag: dict) -> int:
     ]
     return add_or_get_entity_id(Hashtag, hashtag, conditions)
 
-def get_hashtags(ids: list | None = None) -> list[Hashtag]:
-    return get_entities(Hashtag, ids)
+def add_city(city: dict) -> int:
+    conditions = [
+        City.id_vk == city['id_vk']
+    ]
+    return add_or_get_entity_id(City, city, conditions)
 
-def get_publications(ids: list | None = None) -> list[Publication]:
-    return get_entities(Publication, ids)
+def get_hashtags(conditions: list | None = None) -> tuple[Hashtag, ...]:
+    return get_entities(Hashtag, conditions)
+
+def get_publications(conditions: list | None = None) -> tuple[Publication, ...]:
+    return get_entities(Publication, conditions)
+
+def get_users(conditions: list | None = None) -> tuple[User, ...]:
+    return get_entities(User, conditions)
+
+def get_unprocessed_user_ids() -> tuple[int, ...]:
+    query = (
+        select(User.id_vk)
+        .where(User.first_name.is_(None))
+        .where(User.id_vk > 0)
+    )
+    return db.execute(query).scalars().all()
+
 
 def update_publication_snapshot_status(publication_id: int, status: SnapshotStatusEnum) -> None:
     query = (
@@ -81,6 +110,18 @@ def update_publication_snapshot_status(publication_id: int, status: SnapshotStat
     )
     db.execute(query)
     db.commit()
+
+
+def update_user(user: dict) -> None:
+    query = (
+        update(User)
+        .where(and_(User.id_vk == user['id_vk']))
+        .values(**user)
+        .returning(User.id)
+    )
+    result = db.execute(query)
+    db.commit()
+    return result.scalar_one_or_none()
 
 
 '''

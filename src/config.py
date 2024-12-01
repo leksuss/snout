@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DATABASE: str
 
+    VK_PERMANENT_API_KEY: str
+
     TIMEZONE: ZoneInfo = ZoneInfo('Europe/Moscow')
 
     class Config:

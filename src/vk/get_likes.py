@@ -1,3 +1,5 @@
+import time
+
 from src.logger import app_logger as logger
 from src.vk.scraper import fetch_users_from_likes
 from src.vk.models import ActivityTypeEnum, SnapshotStatusEnum
@@ -41,11 +43,16 @@ def process_publication(publication):
 
 def main():
     publications = get_publications_without_activity(ActivityTypeEnum.LIKE)
+    count_publications = len(publications)
+    logger.info(f'Found {len(publications)} publications without likes')
 
     for publication in publications:
         logger.info(f'Processing publication {publication}')
         process_publication(publication)
         logger.info(f'Finished processing publication {publication}')
+        count_publications -= 1
+        logger.info(f'{count_publications} left to process')
+        time.sleep(3)
 
 if __name__ == "__main__":
     main()

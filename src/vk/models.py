@@ -11,6 +11,7 @@ from src.db_conn import Base
 class SexEnum(enum.Enum):
     MALE = ' MALE'
     FEMALE = 'FEMALE'
+    UNKNOWN = 'UNKNOWN'
 
 
 class PublTypeEnum(enum.Enum):
@@ -116,13 +117,15 @@ class User(Base):
     id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     first_name: Mapped[str] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str] = mapped_column(String(255), nullable=True)
-    nickname: Mapped[str] = mapped_column(String(255), nullable=True)
+    screen_name: Mapped[str] = mapped_column(String(255), nullable=True)
     sex: Mapped[SexEnum] = mapped_column(Enum(SexEnum), nullable=True)
     birthday: Mapped[Date] = mapped_column(Date, nullable=True)
     country_id: Mapped[int] = mapped_column(Integer, ForeignKey('countries.id'), nullable=True)
     city_id: Mapped[int] = mapped_column(Integer, ForeignKey('cities.id'), nullable=True)
     is_closed: Mapped[bool] = mapped_column(Boolean, nullable=True)
     checked_at: Mapped[Date] = mapped_column(DateTime(timezone=True), nullable=False, default=func.now())
+    is_banned: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
     publications = relationship('Publication', back_populates='user')
     activities = relationship('Activity', back_populates='user')
@@ -158,7 +161,7 @@ class City(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, index=True)
     id_vk: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    country_id: Mapped[int] = mapped_column(Integer, ForeignKey('countries.id'))
+    country_id: Mapped[int] = mapped_column(Integer, ForeignKey('countries.id'), nullable=True)
 
     users = relationship('User', back_populates='city')
     country = relationship('Country', back_populates='cities')

@@ -1,13 +1,19 @@
 import json
 import re
 import time
+from itertools import batched
 
 import httpx
 from bs4 import BeautifulSoup
 
 from src.logger import get_logger
 from src.vk.models import PublTypeEnum
-from src.vk.schemas import LikesFirstResponseSchema, LikesRestResponseSchema, AccessResponseSchema
+from src.vk.schemas import (
+    LikesFirstResponseSchema,
+    LikesRestResponseSchema,
+    AccessResponseSchema,
+    UserSchema,
+)
 from src.vk.exceptions import AccessDeniedException, NotFoundException
 
 
@@ -21,6 +27,7 @@ def parse_id_vk_users(chunk_data):
     user_rows = soup.find_all('div', class_='fans_fan_row')
     data_ids = set(int(div.get('data-id')) for div in user_rows)
     return data_ids or None
+
 
 def fetch_chunk_likes(publ_uri: str, offset: int = 0):
     url = 'https://vk.com/wkview.php?act=show'
@@ -41,6 +48,7 @@ def fetch_chunk_likes(publ_uri: str, offset: int = 0):
     except json.JSONDecodeError as e:
         logger.error(f'Error parsing JSON: {e}. Payload: {payload}. Data: {json_str[:100]} ... (truncated)')
 
+
 def fetch_users_from_likes(publ_type: PublTypeEnum, id_vk_user: int, id_vk_publication: int) -> set[int]:
     publ_uri = f'{publ_type.value.lower()}{str(id_vk_user)}_{str(id_vk_publication)}'
     offset = 0
@@ -55,7 +63,6 @@ def fetch_users_from_likes(publ_type: PublTypeEnum, id_vk_user: int, id_vk_publi
                 raise AccessDeniedException
 
             if AccessResponseSchema(**chunk_data).is_not_found:
-                print(chunk_data)
                 raise NotFoundException
 
             if not chunk_data:
@@ -85,10 +92,65 @@ def fetch_users_from_likes(publ_type: PublTypeEnum, id_vk_user: int, id_vk_publi
     return users
 
 
+def fetch_users_chunk(api_key: str, user_ids:tuple[int, ...]) -> list[UserSchema] | None:
+    VK_API_URL = 'https://api.vk.com/method/users.get'
+    VK_API_VERSION = 5.199
+
+    fields = (
+        'sex',
+        'screen_name',
+        'first_name',
+        'last_name',
+        'bdate',
+        'city',
+    )
+    payload = {
+        'user_ids': ','.join(map(str, user_ids)),
+        'fields': ','.join(fields),
+        'v': VK_API_VERSION,
+        'access_token': api_key
+    }
+    with httpx.Client() as client:
+        response = client.post(VK_API_URL, data=payload)
+        response.raise_for_status()
+
+    try:
+        response_json = response.json()
+    except json.JSONDecodeError as e:
+        logger.error(f'Error parsing JSON: {e}. Payload: {payload}. Data: {response.text[:100]} ... (truncated)')
+        return None
+
+    if 'error' in response_json or 'response' not in response_json:
+        logger.error(f'VK API error for payload: {payload}. Data: {response_json}')
+        return None
+
+    return [UserSchema(**user) for user in response_json['response']]
+
+
+def fetch_users(api_key, user_ids:tuple[int, ...]) -> list[UserSchema] | None:
+    CHUNK_SIZE = 1000  # max count of users per request, VK limit
+    count_chunks = 0
+    users = []
+    for user_ids_chunk in batched(user_ids, CHUNK_SIZE):
+        logger.info(f'Fetching users, batch {count_chunks}')
+        try:
+            users_chunk = fetch_users_chunk(api_key, user_ids_chunk)
+            if users_chunk:
+                users.extend(users_chunk)
+        except Exception as e:
+            logger.error(f'Error fetching users: {e}')
+            break
+        count_chunks += 1
+        time.sleep(5)
+    return users
+
+
 if __name__ == '__main__':
     # print(fetch_chunk_likes("clip-222681453_456241259", offset=120))
     # users = fetch_users_from_likes(PublTypeEnum.WALL, -220568323, 893)
-    users = fetch_users_from_likes(PublTypeEnum.WALL, 585157377, 456239145)
+    from src.config import settings
+    users_ids = (10000, 10001, 10002, 1901501, 343379968)
+    users = fetch_users(settings.VK_PERMANENT_API_KEY, users_ids)
     print(users)
 
 
