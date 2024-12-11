@@ -71,7 +71,7 @@ class Hashtag(Base):
     __tablename__ = 'hashtags'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, nullable=False, autoincrement=True, index=True)
-    name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
     campaign_id: Mapped[int] = mapped_column(Integer, ForeignKey('campaigns.id'))
     is_main: Mapped[bool] = mapped_column(Boolean, nullable=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=True)
@@ -83,6 +83,10 @@ class Hashtag(Base):
     )
 
     campaign = relationship('Campaign', cascade='all, delete', back_populates='hashtags')
+
+    __table_args__ = (
+        UniqueConstraint('name', 'campaign_id', name='unique_hashtag_in_campaign'),
+    )
 
     def __repr__(self):
         return f'Hashtag {self.name}'
