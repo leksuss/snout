@@ -2,7 +2,6 @@ import csv
 from datetime import datetime
 
 import re
-import zoneinfo
 
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
@@ -10,7 +9,7 @@ from typing import List, Optional
 
 from src.logger import app_logger
 from src.vk.services import add_publication, add_user, add_publication_snapshot, add_hashtag, get_hashtags
-from src.vk.models import PublTypeEnum, ActivityTypeEnum, SnapshotStatusEnum
+from src.vk.models import PublTypeEnum, SnapshotStatusEnum
 
 
 class PublicationSchema(BaseModel):
@@ -80,7 +79,7 @@ def read_csv_to_pydantic_objects(file_path: str) -> List[PublicationSchema]:
 
 if __name__ == '__main__':
     file_path = 'links.csv'
-    campaign_id = 1
+    campaign_id = 3
     publications_from_csv = read_csv_to_pydantic_objects(file_path)
     app_logger.info(f'Converting {len(publications_from_csv)} publications from {file_path}')
 
@@ -112,7 +111,7 @@ if __name__ == '__main__':
         snapshot = {
             'publication_id': publication_id,
             'views': publication_from_csv.views,
-            'checked_at': datetime(2024, 10, 16, 0, 0, 0),
+            'checked_at': datetime(2024, 12, 10, 0, 0, 0),
             'status': publication_from_csv.snapshot_status,
         }
         snapshot_id, _ = add_publication_snapshot(snapshot)

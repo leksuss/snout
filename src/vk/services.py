@@ -15,6 +15,7 @@ from src.vk.models import (
     Hashtag,
     ActivityTypeEnum,
     SnapshotStatusEnum,
+    publication_hashtag,
 )
 from src.vk.schemas import UserSchema
 
@@ -143,7 +144,7 @@ def get_publications_without_activity(activity_type: ActivityTypeEnum) -> list[P
     return db.execute(query).scalars().all()
 '''
 
-def get_publications_without_activity(activity_type: ActivityTypeEnum) -> list[Publication]:
+def get_publications_without_activity(activity_type: ActivityTypeEnum, campaign_id: int) -> list[Publication]:
     activity_subquery = (
         select(1)
         .where(Activity.publication_id == Publication.id)
@@ -159,6 +160,13 @@ def get_publications_without_activity(activity_type: ActivityTypeEnum) -> list[P
         .scalar_subquery()
     )
 
+    hashtag_subquery = (
+        select(1)
+        .where(publication_hashtag.c.publication_id == Publication.id)
+        .where(Hashtag.id == publication_hashtag.c.hashtag_id)
+        .where(Hashtag.campaign_id == campaign_id)
+    )
+
     query = (
         select(Publication)
         .options(joinedload(Publication.user))
@@ -168,13 +176,14 @@ def get_publications_without_activity(activity_type: ActivityTypeEnum) -> list[P
         ))
         .where(and_(
             not_(exists(activity_subquery)),
-            LatestSnapshot.status == SnapshotStatusEnum.SUCCESS
+            LatestSnapshot.status == SnapshotStatusEnum.SUCCESS,
+            exists(hashtag_subquery),
         ))
     )
 
     return db.execute(query).scalars().all()
 
 if __name__ == '__main__':
-    pub = get_publications_without_activity(ActivityTypeEnum.LIKE)
+    pub = get_publications_without_activity(ActivityTypeEnum.LIKE, 3)
 
     print(len(pub))

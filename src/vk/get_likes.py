@@ -42,7 +42,8 @@ def process_publication(publication):
     logger.info(f'Created {count_users_created} users and {count_activities_created} activities')
 
 def main():
-    publications = get_publications_without_activity(ActivityTypeEnum.LIKE)
+    CAMPAIGN_ID = 3
+    publications = get_publications_without_activity(ActivityTypeEnum.LIKE, CAMPAIGN_ID)
     count_publications = len(publications)
     logger.info(f'Found {len(publications)} publications without likes')
 
